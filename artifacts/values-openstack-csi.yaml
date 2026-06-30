@@ -1,0 +1,16 @@
+secret:
+  enabled: true
+  name: openstack-cloud-config
+  create: false
+storageClass:
+  enabled: true
+  delete:
+    isDefault: false
+    allowVolumeExpansion: true
+  retain:
+    isDefault: true
+    allowVolumeExpansion: true
+csi:
+  plugin:
+    nodePlugin:
+      kubeletDir: /var/lib/kubelet

@@ -1,0 +1,11 @@
+[project]
+name = "k0rdent-ai-openstack"
+version = "0.1.0"
+description = "Deploy k0s/MKE4K Kubernetes clusters and k0rdent on OpenStack"
+requires-python = ">=3.12"
+dependencies = [
+    "python-dotenv>=1.1.0",
+]
+
+[project.scripts]
+xctl = "xctl:main"

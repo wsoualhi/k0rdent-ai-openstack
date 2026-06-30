@@ -1,0 +1,86 @@
+# =============================================================================
+# Secrets & credentials  (NEVER commit)
+# =============================================================================
+.env
+.env.local
+.env.*.local
+
+# OpenStack openrc credential scripts
+*openrc*.sh
+
+# Real Terraform config / endpoints — commit terraform.tfvars.example instead
+terraform.tfvars
+
+# Generic secret material
+*.key
+*.crt
+*.pem
+htpasswd
+
+# Local registry TLS key + htpasswd
+artifacts/registry.local/
+
+# SSH keys
+ssh-key
+ssh-key.pub
+
+# =============================================================================
+# Terraform
+# =============================================================================
+*.tfstate
+*.tfstate.*
+.terraform/
+tfplan*
+*.tfvars.backup
+# (.terraform.lock.hcl is intentionally committed — pins provider versions)
+
+# =============================================================================
+# Kubernetes / generated cluster configs
+# =============================================================================
+kubeconfig
+*.kubeconfig
+
+# Generated from *.yaml.tpl
+k0sctl.yaml
+mkectl.yaml
+manifests/secret-*.yaml
+manifests/secret-openstack-cloud-config.yaml
+
+# =============================================================================
+# Python / uv
+# =============================================================================
+.venv/
+__pycache__/
+*.pyc
+# (uv.lock is intentionally committed — reproducible installs)
+
+# =============================================================================
+# Logs & temp
+# =============================================================================
+*.logs
+*.log
+mkectl.logs
+k0sctl.logs
+deploy_all.run.log
+/tmp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# =============================================================================
+# Editors / IDE / OS
+# =============================================================================
+.claude/settings.local.json
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

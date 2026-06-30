@@ -1,0 +1,94 @@
+# Copy this file to terraform.tfvars and customize for your environment.
+#   cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars is gitignored — never commit it (it holds your endpoints/secrets).
+# This file overrides defaults in variables.tf.
+
+# =============================================================================
+# CORE CLUSTER CONFIGURATION
+# =============================================================================
+cluster_type     = "k0s"        # "mke4k" or "k0s"
+k0s_version      = "v1.36.1+k0s.0"  # k0s version (only used when cluster_type = "k0s")
+resource_prefix  = "ws"         # Prefix for all resource names (e.g. 'poc', 'dev', 'prod')
+cluster_name     = "demo"       # Cluster name (prefixed with resource_prefix)
+controller_count = 3            # Controller nodes (1-3)
+worker_count     = 3            # Worker nodes (0-10)
+
+# =============================================================================
+# OPENSTACK CONFIGURATION
+# =============================================================================
+openstack_auth_url = "https://keystone.example.com/"   # OpenStack Keystone URL
+openstack_region   = "RegionOne"                       # OpenStack region
+
+# SSL/TLS for self-signed OpenStack endpoints
+openstack_insecure = false      # Skip TLS verification (testing only)
+#openstack_custom_ca = true     # Use custom CA bundle for OpenStack API (CCM/CSI)
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+external_network_name = "public"          # External network for floating IPs
+openstack_services_ip = "10.0.0.1"        # IP of OpenStack services (keystone, nova, ...)
+
+network_cidr = "10.0.1.0/24"              # Cluster network CIDR
+pod_cidr     = "10.244.0.0/16"            # Kubernetes pod CIDR
+service_cidr = "10.96.0.0/12"             # Kubernetes service CIDR
+
+# Reuse an existing network instead of creating one
+#use_existing_network  = true
+#existing_network_name = "net-1"
+#existing_subnet_name  = "subnet-net-1"
+
+dns_nameservers = ["8.8.8.8", "8.8.4.4"]  # Subnet DNS nameservers (created networks only)
+
+# External address (Route53 / OpenStack DNS) — automated later
+external_address = ""
+
+# =============================================================================
+# INSTANCE CONFIGURATION
+# =============================================================================
+image_name = "ubuntu-22.04"     # OpenStack image (raw format recommended)
+# image_id = ""                 # Image ID (takes precedence over image_name)
+
+control_plane_flavor = "m1.xlarge"
+worker_flavor        = "m1.xlarge"
+bastion_flavor       = "m1.xlarge"
+
+worker_floating_ips_enabled     = true    # Floating IPs on workers (usually not needed for k0s)
+controller_floating_ips_enabled = true    # Floating IPs on controllers (usually needed for k0s)
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+volume_size = 40                # Boot volume size (GB)
+volume_type = "standard-iops"   # Boot volume type
+
+# =============================================================================
+# HIGH AVAILABILITY & SECURITY
+# =============================================================================
+load_balancer_enabled             = true  # Control-plane HA load balancer
+load_balancer_floating_ip_enabled = true  # Floating IP on the load balancer
+
+bastion_enabled    = true       # Create a bastion host for SSH access
+bastion_image_name = "ubuntu-22.04"
+bastion_user       = "ubuntu"   # SSH user (ubuntu for Ubuntu, cirros for CirrOS)
+
+# OIDC configuration
+oidc_enabled          = false
+oidc_issuer_url       = "https://accounts.google.com"
+oidc_client_id        = "CHANGE_ME.apps.googleusercontent.com"
+oidc_client_secret_id = "CHANGE_ME"
+
+# =============================================================================
+# NETWORKING & CNI
+# =============================================================================
+# Cilium (k0s) is configured via Helm in artifacts/k0sctl.yaml.tpl
+calico_mode = "vxlan"           # vxlan | ipip | bird
+calico_mtu  = 1450              # 1500 - 50 bytes VXLAN overhead (OpenStack)
+
+ingress_http_port  = 33000
+ingress_https_port = 33001
+
+# =============================================================================
+# RESOURCE TAGGING
+# =============================================================================
+tags = ["mke4", "mirantis", "poc"]
