@@ -124,6 +124,13 @@ def fmt_duration(seconds: float) -> str:
     return f"{s // 60}m {s % 60}s"
 
 
+def target_cloud() -> str:
+    """Describe the OpenStack cloud the loaded .env targets (guardrail for multi-env use)."""
+    auth = os.environ.get("OS_AUTH_URL") or "(OS_AUTH_URL not set)"
+    project = os.environ.get("OS_PROJECT_NAME") or "?"
+    return f"{auth}  (project: {project})"
+
+
 def command_exists(cmd: str) -> bool:
     """Check if a command is available on PATH."""
     return subprocess.run(
@@ -703,6 +710,7 @@ def deployment_summary(cluster_type: str, timings: list, total: float) -> None:
         print(f"Add-ons:       {addons}")
         print(f"OpenStack:     {vms} VMs, {lbs} load balancer(s), "
               f"{sgs} security group(s), {vols} volume(s)")
+        print(f"Cloud:         {target_cloud()}")
         print(f"API endpoint:  {api_endpoint}")
         print()
         print("Connect:")
@@ -727,6 +735,7 @@ def deploy_all() -> None:
     start = time.time()
 
     print_status(f"xctl:Script will now deploy {cluster_type} cluster. You can select the cluster type in terraform.tfvars")
+    print_warning(f"Target OpenStack cloud: {target_cloud()}")
     reply = input("Do you want to proceed? (y/N): ").strip().lower()
     if reply != "y":
         print_warning("Deployment cancelled by user")
@@ -768,6 +777,8 @@ def destroy_all() -> None:
     print("  - Clean up configuration manifests")
     print()
     print("This action cannot be undone.")
+    print()
+    print_warning(f"Target OpenStack cloud: {target_cloud()}")
     print()
 
     reply = input("Are you sure you want to proceed with destruction? [y/N] ").strip().lower()
