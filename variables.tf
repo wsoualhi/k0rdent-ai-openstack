@@ -137,6 +137,12 @@ variable "openstack_services_ip" {
   default     = "10.130.0.66"
 }
 
+variable "konnectivity_enabled" {
+  description = "Create konnectivity (8132) LB listener/pool/monitor/members and security-group rules (k0s). k0s runtime disables konnectivity-server, so this is off by default."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = list(string)

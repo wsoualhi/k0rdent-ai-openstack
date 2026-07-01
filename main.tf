@@ -206,7 +206,7 @@ resource "openstack_networking_secgroup_rule_v2" "k8s_api" {
 
 # k0s konnectivity - only for k0s clusters
 resource "openstack_networking_secgroup_rule_v2" "k0s_konnectivity" {
-  count             = var.cluster_type == "k0s" ? 1 : 0
+  count             = var.cluster_type == "k0s" && var.konnectivity_enabled ? 1 : 0
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -242,7 +242,7 @@ resource "openstack_networking_secgroup_rule_v2" "k8s_join" {
 
 # k0s konnectivity (external access for load balancer)
 resource "openstack_networking_secgroup_rule_v2" "k0s_konnectivity_external" {
-  count             = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" ? 1 : 0
+  count             = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" && var.konnectivity_enabled ? 1 : 0
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
@@ -692,7 +692,7 @@ resource "openstack_lb_member_v2" "k8s_api_members" {
 
 # Listener for Konnectivity (8132)
 resource "openstack_lb_listener_v2" "k0s_konnectivity_listener" {
-  count           = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" ? 1 : 0
+  count           = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" && var.konnectivity_enabled ? 1 : 0
   name            = "${local.full_cluster_name}-konnectivity-listener"
   protocol        = "TCP"
   protocol_port   = 8132
@@ -701,7 +701,7 @@ resource "openstack_lb_listener_v2" "k0s_konnectivity_listener" {
 
 # Pool for Konnectivity
 resource "openstack_lb_pool_v2" "k0s_konnectivity_pool" {
-  count       = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" ? 1 : 0
+  count       = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" && var.konnectivity_enabled ? 1 : 0
   name        = "${local.full_cluster_name}-konnectivity-pool"
   protocol    = "TCP"
   lb_method   = "ROUND_ROBIN"
@@ -710,7 +710,7 @@ resource "openstack_lb_pool_v2" "k0s_konnectivity_pool" {
 
 # Health monitor for Konnectivity
 resource "openstack_lb_monitor_v2" "k0s_konnectivity_monitor" {
-  count       = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" ? 1 : 0
+  count       = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" && var.konnectivity_enabled ? 1 : 0
   name        = "${local.full_cluster_name}-konnectivity-monitor"
   pool_id     = openstack_lb_pool_v2.k0s_konnectivity_pool[0].id
   type        = "TCP"
@@ -721,7 +721,7 @@ resource "openstack_lb_monitor_v2" "k0s_konnectivity_monitor" {
 
 # Pool members for Konnectivity - modified temporarily by ws to replace the ingress_controller need for mke4k
 resource "openstack_lb_member_v2" "k0s_konnectivity_members" {
-  count         = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" ? var.controller_count : 0
+  count         = var.load_balancer_enabled && var.controller_count > 1 && var.cluster_type == "k0s" && var.konnectivity_enabled ? var.controller_count : 0
   name          = "${local.full_cluster_name}-controller-${count.index + 1}-konnectivity"
   pool_id       = openstack_lb_pool_v2.k0s_konnectivity_pool[0].id
   address       = openstack_compute_instance_v2.k8s_controllers[count.index].network[0].fixed_ip_v4
