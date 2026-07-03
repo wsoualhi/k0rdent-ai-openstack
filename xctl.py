@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 
 # Project root = directory containing this script
 ROOT = Path(__file__).resolve().parent
+KUBECONFIG_DIR = ROOT / "kubeconfigs"           # all kubeconfigs live here (gitignored)
+KUBECONFIG_PATH = KUBECONFIG_DIR / "management"  # this (management) cluster's kubeconfig
 
 # --- Colors ---
 RED = "\033[0;31m"
@@ -266,7 +268,7 @@ def deploy_ccm() -> None:
 
     print_status("xctl:Deploying OpenStack Cloud Controller Manager and CSI...")
 
-    kubeconfig = ROOT / "kubeconfig"
+    kubeconfig = KUBECONFIG_PATH
     if not kubeconfig.exists():
         print_error("xctl:kubeconfig not found. Please run setup_kubeconfig first.")
         sys.exit(1)
@@ -447,20 +449,20 @@ def setup_kubeconfig() -> None:
         # hosts and must use the explicit keyPath, not a stale ssh-agent key.
         result = run("k0sctl kubeconfig --config k0sctl.yaml", capture=True,
                      env={"SSH_AUTH_SOCK": ""})
-        (ROOT / "kubeconfig").write_text(result.stdout)
+        (KUBECONFIG_PATH).write_text(result.stdout)
     elif cluster_type == "mke4k":
         print_status("xctl:The mkectl apply command configures the mke context in ~/.mke/mke.kubeconf")
         src = Path.home() / ".mke" / "mke.kubeconf"
         if src.exists():
-            (ROOT / "kubeconfig").write_text(src.read_text())
+            (KUBECONFIG_PATH).write_text(src.read_text())
         else:
             print_error("xctl:~/.mke/mke.kubeconf not found")
             sys.exit(1)
 
-    os.environ["KUBECONFIG"] = str(ROOT / "kubeconfig")
-    print_success("xctl:Kubeconfig generated: ./kubeconfig")
+    os.environ["KUBECONFIG"] = str(KUBECONFIG_PATH)
+    print_success("xctl:Kubeconfig generated: ./kubeconfigs/management")
     print_status("xctl:To use kubectl with this cluster:")
-    print_status("xctl:  export KUBECONFIG=./kubeconfig")
+    print_status("xctl:  export KUBECONFIG=./kubeconfigs/management")
     print_status("xctl:  kubectl get nodes")
 
 
@@ -474,7 +476,7 @@ def deploy_custom_ca_secret() -> None:
         return
 
     print_status("xctl:Custom CA enabled - applying secret directly...")
-    env = {"KUBECONFIG": str(ROOT / "kubeconfig")}
+    env = {"KUBECONFIG": str(KUBECONFIG_PATH)}
 
     print_status("xctl:Creating custom CA secret from manifests/secret-ca-cert.yaml...")
     run("kubectl apply -f manifests/secret-ca-cert.yaml", env=env)
@@ -561,7 +563,7 @@ def extract_openstack_ca_cert() -> None:
 def verify_cluster() -> None:
     """Verify cluster deployment."""
     print_status("xctl:Verifying cluster...")
-    env = {"KUBECONFIG": str(ROOT / "kubeconfig")}
+    env = {"KUBECONFIG": str(KUBECONFIG_PATH)}
 
     print_status("xctl:Waiting for nodes to be ready...")
     run("kubectl wait --for=condition=Ready nodes --all --timeout=300s", env=env)
@@ -597,7 +599,7 @@ def cluster_access() -> None:
         return
 
     password = credentials.split(":", 1)[1] if ":" in credentials else credentials
-    env = {"KUBECONFIG": str(ROOT / "kubeconfig")}
+    env = {"KUBECONFIG": str(KUBECONFIG_PATH)}
 
     def kubectl_secret(secret: str, namespace: str, key: str) -> str:
         result = run(
@@ -672,7 +674,7 @@ def deployment_summary(cluster_type: str, timings: list, total: float) -> None:
 
         # API endpoint: read from the kubeconfig (most reliable post-deploy).
         api_endpoint = "n/a"
-        kc = ROOT / "kubeconfig"
+        kc = KUBECONFIG_PATH
         if kc.exists():
             m = re.search(r"server:\s*(\S+)", kc.read_text())
             if m:
@@ -795,11 +797,19 @@ def destroy_all() -> None:
     run("terraform destroy -auto-approve")
 
     removed_files = []
-    for name in ["mkectl.logs", "kubeconfig", "k0sctl.logs", "mkectl.yaml", "k0sctl.yaml", "ssh-key", "ssh-key.pub"]:
+    for name in ["mkectl.logs", "k0sctl.logs", "mkectl.yaml", "k0sctl.yaml", "ssh-key", "ssh-key.pub"]:
         p = ROOT / name
         if p.exists():
             removed_files.append(name)
         p.unlink(missing_ok=True)
+
+    # Remove all generated kubeconfigs (kubeconfigs/ directory)
+    if KUBECONFIG_DIR.is_dir():
+        for f in KUBECONFIG_DIR.iterdir():
+            if f.is_file():
+                removed_files.append(f"kubeconfigs/{f.name}")
+                f.unlink(missing_ok=True)
+        KUBECONFIG_DIR.rmdir()
 
     # Clean manifests
     manifests = ROOT / "manifests"

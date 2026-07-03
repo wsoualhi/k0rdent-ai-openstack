@@ -1,0 +1,57 @@
+# Child cluster on OpenStack, provisioned by k0rdent (CAPO).
+# Config schema for openstack-standalone-cp-1-0-37:
+#   controlPlane (camelCase!) / worker each with `flavor` + `image.filter.name`,
+#   `externalNetwork.filter.name`, and `identityRef` (cloudName/region). Credential = spec.credential.
+#
+# Fully parameterised from the repo-root .env — DO NOT edit values here, edit .env instead.
+# Render to a file first (so you can inspect it), then apply:
+#     set -a; source ../.env; set +a
+#     mkdir -p rendered
+#     envsubst < 02-child-cluster/clusterdeployment.yaml > rendered/clusterdeployment.yaml
+#     kubectl apply -f rendered/clusterdeployment.yaml
+#
+# Confirm the template exists:  kubectl get clustertemplate -n kcm-system
+# NOTE: node disk comes from the FLAVOR (e.g. m1.large100 = 100 GB). To boot from a Cinder
+#       volume instead, add `rootVolumeSize: <GB>` under controlplane/ and worker/.
+#
+# Services (MSR/Traefik/cert-manager) are attached LATER (Phase-2 Step 6) once the cluster is up,
+# via a serviceSpec / kubectl patch — see 03-services/ and README §6.
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ClusterDeployment
+metadata:
+  name: ${CHILD_CLUSTER_NAME}
+  namespace: kcm-system
+spec:
+  template: ${OPENSTACK_CLUSTER_TEMPLATE}
+  credential: openstack-cluster-identity-cred   # from 01-credentials/openstack-credential.yaml
+  config:
+    clusterLabels: {}
+    controlPlaneNumber: ${CHILD_CP_COUNT}
+    workersNumber: ${CHILD_WORKER_COUNT}
+    controlPlane:                              # NOTE: camelCase — the enterprise template's schema key
+      flavor: ${CHILD_CP_FLAVOR}
+      image:
+        filter:
+          name: ${CHILD_IMAGE_NAME}
+    worker:
+      flavor: ${CHILD_WORKER_FLAVOR}
+      image:
+        filter:
+          name: ${CHILD_IMAGE_NAME}
+    externalNetwork:
+      filter:
+        name: ${OPENSTACK_EXTERNAL_NETWORK}
+    # Give the CAPO-created child subnet working DNS (Kiel resolvers) so nodes can resolve
+    # get.mirantis.com / registry.mirantis.com to download k0s + images. Without this the
+    # k0s bootstrap curl fails and the control plane never initialises.
+    managedSubnets:
+      - cidr: ${CHILD_SUBNET_CIDR}
+        dnsNameservers:
+          - ${CHILD_DNS_1}
+          - ${CHILD_DNS_2}
+          - ${CHILD_DNS_3}
+    authURL: ${OS_AUTH_URL}
+    identityRef:
+      name: openstack-cloud-config
+      cloudName: openstack
+      region: ${OS_REGION_NAME}

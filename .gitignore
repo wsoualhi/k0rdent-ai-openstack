@@ -39,6 +39,9 @@ tfplan*
 # =============================================================================
 kubeconfig
 *.kubeconfig
+kubeconfig-*
+*-kubeconfig
+kubeconfigs/
 
 # Generated from *.yaml.tpl
 k0sctl.yaml

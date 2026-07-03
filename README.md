@@ -1,6 +1,24 @@
-# MKE4K & k0s OpenStack Deployment Tool
+# k0rdent Enterprise on OpenStack
 
-A comprehensive deployment tool for managing Kubernetes clusters (MKE4K and k0s) on OpenStack infrastructure using Terraform and automated scripts.
+Deploy a Kubernetes platform on OpenStack in **two phases**:
+
+| Phase | Goal | Tooling | Documentation |
+|-------|------|---------|---------------|
+| **Phase 1** | Provision OpenStack infrastructure + a base Kubernetes cluster (k0s or MKE4K) | Terraform + `xctl.py` (imperative) | **this README** (below) |
+| **Phase 2** | Turn the cluster into a **k0rdent Enterprise** management cluster, provision **child clusters**, and deploy the **MSR service stack** (Mirantis Secure Registry + Traefik + TLS) | `helm` + `kubectl` (declarative) | [`k0rdent/README.md`](k0rdent/README.md) |
+
+**Phase 1** gets you a healthy k8s cluster on OpenStack with CCM/CSI — the foundation.
+**Phase 2** builds on that cluster; it does **not** use `xctl.py` or any wrapper, and its
+environment-specific values live in a private, gitignored `k0rdent/environment.local.md`.
+
+> Start with Phase 1 below. Once `kubectl get nodes` is all `Ready`, continue to
+> [Phase 2 → `k0rdent/README.md`](k0rdent/README.md).
+
+---
+
+# Phase 1 — Infrastructure & Base Cluster (MKE4K / k0s)
+
+A deployment tool for managing Kubernetes clusters (MKE4K and k0s) on OpenStack infrastructure using Terraform and automated scripts.
 
 ##  Overview
 
@@ -161,14 +179,14 @@ After successful deployment, you'll get access to:
 
 ### k0s Access
 
-- **Kubeconfig**: `./kubeconfig`
+- **Kubeconfig**: `./kubeconfigs/management`
 - **API Endpoint**: `https://<load-balancer-ip>:6443`
 
 ## 📁 Generated Files
 
 | File | Description |
 |------|-------------|
-| `kubeconfig` | Cluster access configuration |
+| `kubeconfigs/management` | Cluster access configuration |
 | `mkectl.logs` | MKE4K deployment logs |
 | `k0sctl.logs` | k0s deployment logs |
 | `ssh-key` | Private SSH key for node access |
@@ -301,8 +319,22 @@ uv run xctl.py remove_from_known_hosts
                         └─────────────────┘
 ```
 
+## ➡️ Next: Phase 2 — k0rdent Enterprise
+
+Once Phase 1 is complete and `kubectl get nodes` shows all nodes `Ready`, continue to
+**[`k0rdent/README.md`](k0rdent/README.md)** to:
+
+1. Install **k0rdent Enterprise** (KCM) on this cluster — the management cluster
+2. Configure OpenStack **credentials** so k0rdent can provision **child clusters**
+3. Provision a **child cluster** on OpenStack
+4. Deploy the **MSR service stack** (cert-manager → Traefik → MSR) onto the child
+
+> Tip: for a minimal k0rdent management cluster, set `worker_count = 0` in `terraform.tfvars`
+> (controllers are schedulable).
+
 ## Support & Documentation
 
+- **k0rdent Enterprise**: [k0rdent Enterprise documentation](https://docs.mirantis.com/k0rdent-enterprise/latest/)
 - **k0s**: [k0s documentation](https://docs.k0sproject.io/)
 - **MKE4k**: [MKE4k documentation](https://docs.mirantis.com/mke/4.0/)
 - **k0sctl**: [k0sctl repository](https://github.com/k0sproject/k0sctl)

@@ -1,0 +1,25 @@
+# cert-manager on the CHILD cluster.
+# k0rdent Enterprise ships a bundled ServiceTemplate for cert-manager — prefer it over a custom one.
+# After Step 1, confirm the exact name:  kubectl get servicetemplate -n kcm-system | grep cert-manager
+#
+# If the bundled template exists (e.g. cert-manager-1-18-1) you do NOT need this file — just reference
+# that name in the ClusterDeployment serviceSpec (already done in 02-child-cluster/).
+#
+# Keep this only if you need a custom/pinned cert-manager ServiceTemplate.
+# NOTE: cert-manager may be a hard MSR dependency (internal PKI) even though the PUBLIC ingress cert
+#       is the CA-signed cert from 03-services/tls/. TODO/CONFIRM against MSR docs.
+#
+# --- custom ServiceTemplate skeleton (only if not using the bundled one) ---
+# apiVersion: k0rdent.mirantis.com/v1beta1
+# kind: ServiceTemplate
+# metadata:
+#   name: cert-manager-custom
+#   namespace: kcm-system
+# spec:
+#   helm:
+#     chartSpec:                 # TODO/CONFIRM exact ServiceTemplate helm schema for v1.4.0
+#       chart: cert-manager
+#       version: v1.18.1
+#       sourceRef:
+#         kind: HelmRepository
+#         name: jetstack

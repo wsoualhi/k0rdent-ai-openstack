@@ -1,0 +1,19 @@
+# Rendered secrets & private material — NEVER commit. Keep only the *.tpl templates.
+secret-*.yaml
+!secret-*.yaml.tpl
+
+# TLS private key / cert / signing request
+*.key
+*.crt
+*.csr
+*.pem
+
+# OpenStack creds
+clouds.yaml
+
+# Child cluster access
+child-kubeconfig
+*-kubeconfig
+
+# Rendered manifests (envsubst output) — may contain real secrets; never commit
+rendered/

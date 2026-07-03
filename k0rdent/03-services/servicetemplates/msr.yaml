@@ -1,0 +1,24 @@
+# Custom ServiceTemplate wrapping the MSR (Mirantis Secure Registry) helm chart — deployed to the child.
+# License/registry-gated (Mirantis). Exposed via Traefik using the CA-signed TLS cert (msr-tls).
+#
+# TODO/CONFIRM:
+#   - MSR chart coordinates (registry.mirantis.com/... ), version, and edition
+#   - whether MSR requires cert-manager (internal PKI) as a dependency
+#   - ServiceTemplate helm schema for k0rdent Enterprise v1.4.0
+# Docs: https://docs.mirantis.com/  (MSR 4.x install / helm)
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ServiceTemplate
+metadata:
+  name: msr
+  namespace: kcm-system
+spec:
+  helm:
+    chartSpec:                        # TODO/CONFIRM field names / source model
+      chart: msr                      # TODO exact chart name
+      version: ${MSR_CHART_VERSION}   # from .env
+      sourceRef:
+        kind: HelmRepository
+        name: mirantis                # HelmRepository / OCI ref for MSR
+        namespace: kcm-system
+  # MSR values (ingress host = <MSR_FQDN>, TLS secret = msr-tls) are supplied per-ClusterDeployment
+  # in serviceSpec.services[].values, or defaulted here once confirmed.

@@ -1,0 +1,115 @@
+# =============================================================================
+# Object 3 of 3 — resource-template ConfigMap
+# Safe to commit — no sensitive data.
+#
+# ⚠️  DO NOT run `envsubst` on this file. It is a Go template rendered by Sveltos
+#     on the child cluster; its `$cluster`, `$identity`, `$auth`… tokens look like
+#     shell variables and envsubst would ERASE them. Apply it directly:
+#         kubectl apply -f openstack-resource-template.yaml
+#
+# Renders the OpenStack CCM `cloud.conf` Secret into kube-system on the child cluster.
+# Supports both application-credential and username/password auth.
+# Name must be exactly: openstack-cloud-config-resource-template
+# Ref: https://docs.k0rdent.io/latest/appendix/appendix-providers/#naming-the-template-configmap
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openstack-cloud-config-resource-template
+  namespace: kcm-system
+  labels:
+    k0rdent.mirantis.com/component: "kcm"
+  annotations:
+    projectsveltos.io/template: "true"
+data:
+  configmap.yaml: |
+    {{- $cluster := .InfrastructureProvider -}}
+    {{- $identity := (getResource "InfrastructureProviderIdentity") -}}
+
+    {{- $clouds := fromYaml (index $identity "data" "clouds.yaml" | b64dec) -}}
+    {{- if not $clouds }}
+      {{ fail "failed to decode clouds.yaml" }}
+    {{ end -}}
+
+    {{- $openstack := index $clouds "clouds" "openstack" -}}
+    {{- if not (hasKey $openstack "auth") }}
+      {{ fail "auth key not found in openstack config" }}
+    {{- end }}
+    {{- $auth := index $openstack "auth" -}}
+
+    {{- $auth_url := index $auth "auth_url" -}}
+    {{- $app_cred_id := index $auth "application_credential_id" -}}
+    {{- $app_cred_name := index $auth "application_credential_name" -}}
+    {{- $app_cred_secret := index $auth "application_credential_secret" -}}
+    {{- $username := index $auth "username" -}}
+    {{- $password := index $auth "password" -}}
+    {{- $project_id := index $auth "project_id" -}}
+    {{- $user_domain := index $auth "user_domain_name" -}}
+
+    {{- $network_id := $cluster.status.externalNetwork.id -}}
+    {{- $network_name := $cluster.status.externalNetwork.name -}}
+
+    {{- $verify := index $openstack "verify" -}}
+    {{- $ca_cert := index $identity "data" "cacert" -}}
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: openstack-cloud-config
+      namespace: kube-system
+    type: Opaque
+    stringData:
+      cloud.conf: |
+        [Global]
+        auth-url="{{ $auth_url }}"
+
+        {{- if $app_cred_id }}
+        application-credential-id="{{ $app_cred_id }}"
+        {{- end }}
+        {{- if $app_cred_name }}
+        application-credential-name="{{ $app_cred_name }}"
+        {{- end }}
+        {{- if $app_cred_secret }}
+        application-credential-secret="{{ $app_cred_secret }}"
+        {{- end }}
+
+        {{- if and (not $app_cred_id) (not $app_cred_secret) }}
+        username="{{ $username }}"
+        password="{{ $password }}"
+        {{- if $project_id }}
+        tenant-id="{{ $project_id }}"
+        {{- end }}
+        {{- if $user_domain }}
+        domain-name="{{ $user_domain }}"
+        {{- end }}
+        {{- end }}
+        region="{{ index $openstack "region_name" }}"
+
+        {{- if or (eq $verify false) (eq (lower (printf "%v" $verify)) "false") }}
+        tls-insecure=true
+        {{- end }}
+
+        {{- if $ca_cert }}
+        ca-file=/etc/cacert/ca.crt
+        {{- end }}
+
+        [LoadBalancer]
+        {{- if $network_id }}
+        floating-network-id="{{ $network_id }}"
+        {{- end }}
+
+        [Networking]
+        {{- if $network_name }}
+        public-network-name="{{ $network_name }}"
+        {{- end }}
+    {{- if $ca_cert }}
+    ---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: openstack-ca-cert
+      namespace: kube-system
+    type: Opaque
+    data:
+      ca.crt: "{{ $ca_cert }}"
+    {{- end }}

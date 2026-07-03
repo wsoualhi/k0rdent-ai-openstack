@@ -1,0 +1,21 @@
+# Custom ServiceTemplate wrapping the Traefik helm chart — deployed to the child as the ingress
+# controller in front of MSR (TLS termination using the CA-signed cert).
+#
+# TODO/CONFIRM the exact ServiceTemplate helm schema for k0rdent Enterprise v1.4.0:
+#   https://docs.mirantis.com/k0rdent-enterprise/latest/user/services/understanding-servicetemplates/
+# Traefik chart: https://github.com/traefik/traefik-helm-chart  (repo: https://traefik.github.io/charts)
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ServiceTemplate
+metadata:
+  name: traefik
+  namespace: kcm-system
+spec:
+  helm:
+    chartSpec:                       # TODO/CONFIRM field names / source model
+      chart: traefik
+      version: ${TRAEFIK_CHART_VERSION}   # from .env
+      sourceRef:
+        kind: HelmRepository
+        name: traefik                 # a HelmRepository pointing at https://traefik.github.io/charts
+        namespace: kcm-system
+  # Default values can be supplied here or overridden per-ClusterDeployment in serviceSpec.services[].values

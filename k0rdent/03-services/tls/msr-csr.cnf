@@ -1,0 +1,23 @@
+# CSR config for the MSR public certificate (signed by your CA).
+# Fully parameterised from .env — rendered with envsubst (see NOTES.md). Do NOT edit values here.
+# Your CA may override O/OU; CN + SAN are what matter.
+[req]
+prompt             = no
+default_bits       = 2048
+distinguished_name = dn
+req_extensions     = req_ext
+
+[dn]
+CN = ${MSR_FQDN}
+O  = ${CSR_ORG}
+OU = ${CSR_OU}
+L  = ${CSR_CITY}
+ST = ${CSR_STATE}
+C  = ${CSR_COUNTRY}
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = ${MSR_FQDN}
+# add more SANs in .env-driven fashion later if needed

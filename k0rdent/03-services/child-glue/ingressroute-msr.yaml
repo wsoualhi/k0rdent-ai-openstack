@@ -1,0 +1,23 @@
+# Traefik IngressRoute exposing MSR over TLS (CA-signed cert in the `msr-tls` secret).
+# Fully parameterised from .env. Applied DIRECTLY to the CHILD cluster (not via ServiceTemplate).
+# Render to a file first, then apply against the child kubeconfig:
+#     set -a; source ../.env; set +a
+#     mkdir -p rendered
+#     envsubst < 03-services/child-glue/ingressroute-msr.yaml > rendered/ingressroute-msr.yaml
+#     KUBECONFIG=./child-kubeconfig kubectl apply -f rendered/ingressroute-msr.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: msr
+  namespace: ${MSR_NAMESPACE}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`${MSR_FQDN}`)
+      kind: Rule
+      services:
+        - name: ${MSR_SERVICE_NAME}
+          port: ${MSR_SERVICE_PORT}
+  tls:
+    secretName: msr-tls                         # from 03-services/tls/
